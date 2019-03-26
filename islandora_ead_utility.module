@@ -1,0 +1,150 @@
+<?php
+/**
+ * @file
+ * Module used to handle finding aid batches through the UI and drush.
+ */
+
+// General constants.
+define('EAD_XPATH_PLACEHOLDER', '/ead:record/ead:datafield[@tag="035"]/ead:subfield[substring(text(), 1, 7) = "(OCoLC)" and @code="a"]');
+define('EAD_UTIL_MODS_SOLR_FIELDNAME_PLACEHOLDER', 'mods_identifier_oclc_s');
+
+// Permission constants.
+define('ISLANDORA_EAD_UTILITY_MANAGE', 'EAD utility manage');
+define('ISLANDORA_EAD_UTILITY_CAN_APPLY_DATASTREAM', 'EAD utility apply ds');
+define('ISLANDORA_EAD_UTILITY', 'use EAD utility');
+
+/**
+ * Implements hook_menu().
+ */
+function islandora_ead_utility_menu() {
+  $items = array(
+    'admin/islandora/islandora_ead_utility' => array(
+      'title' => t('Islandora EAD Utility - Settings'),
+      'description' => t('Settings for Islandora EAD Utility.'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_ead_utility_admin_settings'),
+      'access arguments' => array(ISLANDORA_EAD_UTILITY_MANAGE),
+      'file' => 'includes/admin.form.inc',
+    ),
+    'admin/islandora/tools/islandora_ead_utility' => array(
+      'title' => t('Islandora EAD Utility'),
+      'description' => t('The Islandora EAD Utility for extracting individual EAD and MODS records from EAD Finding Aids.'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_ead_utility_form'),
+      'access arguments' => array(ISLANDORA_EAD_UTILITY),
+      'file' => 'includes/upload_ead.form.inc',
+    ),
+    'admin/islandora/tools/islandora_ead_utility/viewer/%' => array(
+      'title' => t('Islandora EAD Utility | Viewer'),
+      'type' => MENU_CALLBACK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_ead_utility_file_viewer_display', 5),
+      'access arguments' => array(ISLANDORA_EAD_UTILITY),
+      'file' => 'includes/file_viewer.inc',
+    ),
+    'admin/islandora/tools/islandora_ead_utility/download/%' => array(
+      'title' => t('Islandora EAD Utility | Download'),
+      'type' => MENU_CALLBACK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_ead_utility_download', 5),
+      'access arguments' => array(ISLANDORA_EAD_UTILITY),
+      'file' => 'includes/download.inc',
+    ),
+    'admin/islandora/tools/islandora_ead_utility/downloadall/%' => array(
+      'title' => t('Islandora EAD Utility | Download'),
+      'type' => MENU_CALLBACK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_ead_utility_download_all', 5),
+      'access arguments' => array(ISLANDORA_EAD_UTILITY),
+      'file' => 'includes/download.inc',
+    ),
+    'admin/islandora/tools/islandora_ead_utility/apply_datastream/%' => array(
+      'title' => t('Islandora EAD Utility | Apply Datastream'),
+      'type' => MENU_CALLBACK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_ead_utility_apply_datastream_handler', 5),
+      'access arguments' => array(ISLANDORA_EAD_UTILITY_CAN_APPLY_DATASTREAM),
+      'file' => 'includes/apply_datastream.inc',
+    ),
+    'admin/islandora/tools/islandora_ead_utility/applyall/%' => array(
+      'title' => t('Islandora EAD Utility | Apply Datastream'),
+      'type' => MENU_CALLBACK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_ead_utility_apply_all_datastream_handler', 5),
+      'access arguments' => array(ISLANDORA_EAD_UTILITY_CAN_APPLY_DATASTREAM),
+      'file' => 'includes/apply_datastream.inc',
+    ),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function islandora_ead_utility_permission() {
+  return array(
+    ISLANDORA_EAD_UTILITY => array(
+      'title' => t('Use Islandora EAD Utility.'),
+      'description' => t('User can use the Islandora EAD Utility.'),
+    ),
+    ISLANDORA_EAD_UTILITY_MANAGE => array(
+      'title' => t('Administer Islandora EAD Utility.'),
+      'description' => t('User can administer and configure the Islandora EAD Utility.'),
+    ),
+    ISLANDORA_EAD_UTILITY_CAN_APPLY_DATASTREAM => array(
+      'title' => t('Apply files as datastreams.'),
+      'description' => t('User can apply the resultant MODS xml to the underlying objects.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_presprocess_theme().
+ *
+ * This code will add the javascript if on a datastreams_io page.
+ */
+function islandora_ead_utility_preprocess_page(&$vars) {
+  $item = menu_get_item();
+  $paths_for_css = array(
+      'admin/islandora/tools/islandora_ead_utility',
+      'admin/islandora/tools/islandora_ead_utility/viewer/%',
+      'admin/islandora/tools/islandora_ead_utility/download/%',
+      'admin/islandora/tools/islandora_ead_utility/downloadall/%',
+      'admin/islandora/tools/islandora_ead_utility/apply_datastream/%',
+      'admin/islandora/tools/islandora_ead_utility/applyall/%',
+    );
+  if (is_array($item)) {
+    if (!(array_search($item['path'], $paths_for_css) === FALSE)) {
+      $module_path = drupal_get_path('module', 'islandora_ead_utility');
+      drupal_add_js($module_path . '/js/ead_utility.js');
+      drupal_add_css($module_path . '/css/islandora_ead_utility.css');
+    }
+  }
+}
+
+/**
+ * Implements hook_theme()
+ */
+function islandora_ead_utility_theme() {
+  return array(
+    'islandora_ead_utility_file_viewer' => array(
+      'template' => 'theme/islandora-ead-utility-file-viewer',
+      'variables' => array(
+          'hash' => '',
+          'filename' => '',
+          'file_contents' => '',
+          'subject' => '',
+      ),
+    ),
+    'islandora_ead_utility_apply_datastream' => array(
+      'template' => 'theme/islandora-ead-utility-apply-datastream',
+      'variables' => array(
+          'filename' => '',
+          'file_contents' => '',
+          'subject' => '',
+          'has_object' => FALSE,
+          'Fedora_PID' => '',
+      ),
+    ),
+  );
+}

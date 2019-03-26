@@ -1,0 +1,8 @@
+name = Islandora EAD Utility
+description = "EAD utilities for parsing object MODS out of EAD Finding Aid for each container."
+package = Islandora
+version = 7.x-1.6
+core = 7.x
+dependencies[] = islandora_solr
+configure = admin/islandora/islandora_ead_utility
+php = 5.5
