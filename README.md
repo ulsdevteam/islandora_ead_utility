@@ -1,8 +1,8 @@
-# Islandora MRC Import [![Build Status](https://travis-ci.org/ulsdevteam/islandora_ead_utility.png?branch=7.x)](https://travis-ci.org/ulsdevteam/islandora_ead_utility)
+# Islandora EAD Utility [![Build Status](https://travis-ci.org/ulsdevteam/islandora_ead_utility.png?branch=7.x)](https://travis-ci.org/ulsdevteam/islandora_ead_utility)
 
 ## Introduction
 
-This module provides a method to import EAD Finding Aid files.
+This module provides a method to extract MODS from EAD Finding Aid files.
 
 Upload either a EAD Finding Aid file and be able to:
 1. Download a ZIP file containing the derived MODS XML files.

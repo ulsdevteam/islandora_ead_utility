@@ -186,19 +186,12 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
   );
 
   // call the function to perform the parsing of the EAD Finding Aid file based on the file type.
-  if ($_FILES['files']['type']['ead_upload'] == 'application/octet-stream') {
-    $fn = 'islandora_ead_utility_ead_split';
-  }
-  elseif ($_FILES['files']['type']['ead_upload'] == 'text/xml') {
-    $fn = 'islandora_ead_utility_eadxml_split';
-  }
-  else {
+  if ($_FILES['files']['type']['ead_upload'] <> 'text/xml') {
     drupal_set_message(t('The uploaded file is not supported (mime type "<b><i>@uploaded_file_mimetype</i></b>").  The only supported ' .
-        'file mime types are "<b>application/octet-stream</b>" and "<b>text/xml</b>".',
+        'file mime type is "<b>text/xml</b>".',
           array(
               '@uploaded_file_mimetype' => $_FILES['files']['type']['ead_upload'],
           )), 'error');
-    $fn = '';
   }
 
   // If the user selected to override the configured xpath and MODS field, pass those
@@ -219,8 +212,8 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
   }
 
   // This code will perform everything in the temp directory.
-  $ead_and_mods_records = (($fn) ?
-      $fn($_FILES['files']['tmp_name']['ead_upload'], $ead_identifier_xpath, $mods_identifier_solr_fieldname, $namespace) :
+  $ead_and_mods_records = ((($_FILES['files']['type']['ead_upload'] == 'text/xml')) ?
+      islandora_ead_utility_eadxml_split($_FILES['files']['tmp_name']['ead_upload'], $ead_identifier_xpath, $mods_identifier_solr_fieldname, $namespace) :
       array());
   islandora_ead_utility_add_operation_links_and_title($ead_and_mods_records);
   $form['cancel'] = array(
@@ -229,7 +222,7 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
     '#suffix' => ' ',
   );
   $objects_found_by_match = 0;
-  if (!$is_completed && $fn) {
+  if (!$is_completed && ($_FILES['files']['type']['ead_upload'] == 'text/xml')) {
     $header = array(
         'bib_id',
         'Fedora PID',
@@ -506,65 +499,6 @@ function islandora_ead_utility_runXslTransform($info) {
 }
 
 /**
- * Code to parse a EAD EAD format file.
- *
- * All parameters are optional aside from the $filepath.  When this is called
- * from another module, the configuration values for most of the functionality
- * behind linking an object and applying the datastream to the right object is
- * not handled here.  That module must know what to do with the EAD and MODS
- * xml files.
- *
- * @param string $filepath
- *   The path to the uploaded EAD Finding Aid file.
- * @param string $ead_identifier_xpath
- *   The value to determine the identifier from a EAD xml that comes from parsing
- * EAD Finding Aid for each object container.
- * @param string $mods_identifier_solr_fieldname
- *   The value to search the existing Islandora repository for an object that
- * matches the EAD identifier value.
- * @param string $namespace
- *   The fedora namespace for the intended objects - ONLY for the purposes of
- * filenames that get created for export.  See "Islandora Datastreams Input/Output
- * Utility" https://github.com/ulsdevteam/islandora_datastreams_io for more info
- * on importing ZIP files.
- * @return array
- *   An associative array that contains info about the EAD and MODS files that
- * were able to be parsed out of the EAD Finding Aid.
- */
-function islandora_ead_utility_ead_split($filepath, $ead_identifier_xpath = '', $mods_identifier_solr_fieldname = '', $namespace = '') {
-  module_load_include('inc', 'islandora_ead_utility', 'includes/solr_query');
-
-  $ead_identifier_xpath = (!$ead_identifier_xpath) ?
-      variable_get('islandora_ead_utility_ead_identifier_tag_xpath', EAD_XPATH_PLACEHOLDER) : $ead_identifier_xpath;
-  $mods_identifier_solr_fieldname = (!$mods_identifier_solr_fieldname) ?
-      variable_get('islandora_ead_utility_mods_solr_fieldname', EAD_UTIL_MODS_SOLR_FIELDNAME_PLACEHOLDER) : $mods_identifier_solr_fieldname;
-  $namespace = (!$namespace) ?
-      variable_get('islandora_ead_utility_namespace', 'islandora') : $namespace;
-  $return_files = array();
-
-  if (!islandora_ead_utility_require_once_catch_exception('File/EAD.php')) {
-    return array();
-  }
-
-  // Retrieve a set of EAD records from a file
-  $journals = new File_EAD($filepath);
-  $i = 0;
-  // Iterate through the retrieved records
-  while ($record = $journals->next()) {
-    $results = islandora_ead_utility_get_ead_mods_bib_id_from_record($record, $i, $namespace);
-    $return_files[$i]['bib_id'] = $results['bib_id'];
-    $ead_contents = file_get_contents($results['EAD']);
-    $return_files[$i]['Fedora_PID'] = islandora_ead_utility_find_object_pid_from_eadxml_file($ead_contents, $ead_identifier_xpath, $mods_identifier_solr_fieldname);
-    $return_files[$i]['EAD'] = $results['EAD'];
-    $return_files[$i]['MODS'] = $results['MODS'];
-    $return_files[$i]['EAD size'] = filesize($results['EAD']);
-    $return_files[$i]['MODS size'] = filesize($results['MODS']);
-    $i++;
-  }
-  return $return_files;
-}
-
-/**
  * Helper function to get the identifier value from any EAD xml.
  *
  * @param mixed $recordobj_or_xml
@@ -683,13 +617,19 @@ function islandora_ead_utility_eadxml_split($filepath, $ead_identifier_xpath = '
   $eadxml = file_get_contents($filepath);
 
   // Use PHP's DOM Document to pull out each of the EADXML records.
-  $doc  = new DOMDocument('1.0', 'utf-8'); // DomDocument();
+  $doc = new DOMDocument('1.0', 'utf-8'); // DomDocument();
   $doc->loadXML($eadxml);
   $xpath = new DOMXPath($doc);
-  $xpath->registerNamespace("ead", "http://www.loc.gov/ead/ead.xsd");
+  $xpath->registerNamespace("ead", "urn:isbn:1-931666-22-9");
 
   $i = 0;
-  foreach ($xpath->evaluate('//ead:record') as $node) {
+  //ead:dsc/*[name()='ead:c' or name()='ead:c01' or name()='ead:c02' or name() = 'ead:c03']/ead:did
+//  foreach ($xpath->evaluate("//dsc/*[name()='c' or name()='c01' or name()='c02' or name() = 'c03']/did") as $node) {
+  $xpath_expression = "//ead:dsc/*/ead:did";
+  $eadbody = $doc->getElementsByTagName('ead')->item(0);
+          
+  $entries = $xpath->evaluate($xpath_expression, $eadbody, FALSE );
+  foreach ($entries as $node) {
     $str = $doc->saveHTML($node);
     $str = str_replace("<ead:record>", '<ead:record xmlns:ead="http://www.loc.gov/ead/ead.xsd">', $str);
 
@@ -706,32 +646,3 @@ function islandora_ead_utility_eadxml_split($filepath, $ead_identifier_xpath = '
   return $return_files;
 }
 
-/**
- * Helper function to handle the require_once call that could lead to a white
- * screen.
- *
- * @param string $filepath
- *   The include file that is to be passed to the "require_once" call.
- * @throws Exception
- */
-function islandora_ead_utility_require_once_catch_exception($filepath) {
-
-  try {
-    if (! @include_once( $filepath )) // @ - to suppress warnings,
-    // Could use error_reporting function for the same purpose.
-      throw new Exception (t('"@filepath" does not exist',array(
-          '@filepath' => $filepath,
-      )));
-  }
-  catch(Exception $e) {
-    $message = '<b>Required file could not be loaded for the "Islandora EAD Utility" module.</b>' .
-      '  It may need to be installed -- please refer to ' .
-      l('https://pear.php.net/package/File_EAD/download', 'https://pear.php.net/package/File_EAD/download',
-        array('target' => '_blank')) . '.<br>' .
-      'Message : ' . $e->getMessage() . '<br>' .
-      'Code : ' . $e->getCode();
-    drupal_set_message($message, 'error');
-    return FALSE;
-  }
-  return TRUE;
-}

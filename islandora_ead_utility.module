@@ -1,7 +1,16 @@
 <?php
+
 /**
  * @file
  * Module used to handle finding aid batches through the UI and drush.
+ */
+
+/**
+ * @todo - Python script that converts EAD to MODS and saves the files to the appropriate spaces in the old workflow
+ *   Bigfoot: /usr/local/dlxs/prep/w/workflow/bin/manuscript/ead2mods.py
+ *
+ *   XSLT used to parse the EAD to generate the check-in CSV from EAD.
+ *   Bigfoot: /usr/local/dlxs/prep/w/workflow/bin/manuscript/xsl/DAOcheckIn.xsl
  */
 
 // General constants.
