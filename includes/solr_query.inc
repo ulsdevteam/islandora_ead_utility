@@ -7,57 +7,6 @@
  */
 
 /**
- *
- * @param type $eadxml_file
- * @param type $ead_identifier_xpath
- * @param type $mods_identifier_solr_fieldname
- * @return type
- */
-function islandora_ead_utility_find_object_pid_from_eadxml_file($eadxml_file, $ead_identifier_xpath, $mods_identifier_solr_fieldname) {
-  // 1. parse the eadxml file to get the configured EAD identifier value.
-  //    Uses variable_get('islandora_ead_utility_ead_identifier_tag_xpath',
-  //    '/ead:record/ead:datafield[tag="35"]/ead:subfield[code="a"]').
-  $ead_identifier_value = islandora_ead_utility_get_ead_identifer_value(
-      $eadxml_file, $ead_identifier_xpath, 'ead', 'http://www.loc.gov/ead/ead.xsd');
-
-  $found_object_PID = NULL;
-  if ($ead_identifier_value) {
-    // 2. run a SOLR query to find the object that matches the configured field
-    //    with that value.  Uses variable_get('islandora_ead_utility_mods_solr_fieldname',
-    //    'mods_identifier_oclc_s'),
-    $filters = array($mods_identifier_solr_fieldname . ':' . $ead_identifier_value);
-    $found_object_PID = islandora_ead_utility_solr_query_for_object('PID', $filters, 1);
-  }
-  return $found_object_PID;
-}
-
-/**
- *
- * @param type $xml_content
- * @param type $xpath
- * @param type $namespace
- * @param type $namespace_uri
- * @return type
- */
-function islandora_ead_utility_get_ead_identifer_value($xml_content, $xpath, $namespace = '', $namespace_uri = '') {
-  $xml = new SimpleXMLElement($xml_content);
-  if ($namespace && $namespace_uri) {
-    $xml->registerXPathNamespace($namespace, $namespace_uri);
-  }
-  $match = '';
-  $match_results = $xml->xpath($xpath);
-  if (is_array($match_results) && count($match_results) > 0) {
-    $matches = $match_results[0];
-    $s = (string)$matches;
-    // Sanitize that value to remove prefix, special characters, hoopla, etc.
-    $match = str_replace(array(
-        '(OCoLC)', '(WlCaITV)', ''
-        ), "", $s);
-  }
-  return $match;
-}
-
-/**
  * Helper function to search Solr for any set of filter values and return ONLY
  * a single value.
  *

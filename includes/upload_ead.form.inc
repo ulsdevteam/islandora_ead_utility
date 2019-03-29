@@ -61,20 +61,6 @@ function islandora_ead_utility_form_step1($form, &$form_state) {
         'onchange' => 'set_override_elements(this)',
       ),
     ),
-    'ead_identifier_tag_xpath' => array(
-      '#title' => t('XPath to EADXML node'),
-      '#type' => 'textfield',
-      '#size' => 120,
-      '#attributes' => array(
-        'placeholder' => EAD_XPATH_PLACEHOLDER,
-        'readonly' => 'readonly',
-        'disabled' => 'disabled',
-        'class' => array('disabled_text'),
-      ),
-      '#description' => t('This should be a legal XPath that returns the single ' .
-        '"identifier" node that is to be matched with a possible object\'s MODS field value.'),
-      '#default_value' => variable_get('islandora_ead_utility_ead_identifier_tag_xpath', ''),
-    ),
     'mods_solr_fieldname' => array(
       '#title' => t('MODS identifier Solr fieldname.'),
       '#type' => 'textfield',
@@ -194,15 +180,11 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
           )), 'error');
   }
 
-  // If the user selected to override the configured xpath and MODS field, pass those
-  // values in to whichever parsing function is needed for the uploaded file.
-  $ead_identifier_xpath = variable_get('islandora_ead_utility_ead_identifier_tag_xpath', EAD_XPATH_PLACEHOLDER);
+  // If the user selected to override the configured MODS field, pass the values
+  // in to whichever parsing function is needed for the uploaded file.
   $mods_identifier_solr_fieldname = variable_get('islandora_ead_utility_mods_solr_fieldname', EAD_UTIL_MODS_SOLR_FIELDNAME_PLACEHOLDER);
   $namespace = variable_get('islandora_ead_utility_namespace', 'islandora');
   if (isset($_POST['override']) && $_POST['override']) {
-    if (isset($_POST['ead_identifier_tag_xpath']) && $_POST['ead_identifier_tag_xpath']) {
-      $ead_identifier_xpath = $_POST['ead_identifier_tag_xpath'];
-    }
     if (isset($_POST['mods_solr_fieldname']) && $_POST['mods_solr_fieldname']) {
       $mods_identifier_solr_fieldname = $_POST['mods_solr_fieldname'];
     }
@@ -213,7 +195,7 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
 
   // This code will perform everything in the temp directory.
   $ead_and_mods_records = ((($_FILES['files']['type']['ead_upload'] == 'text/xml')) ?
-      islandora_ead_utility_eadxml_split($_FILES['files']['tmp_name']['ead_upload'], $ead_identifier_xpath, $mods_identifier_solr_fieldname, $namespace) :
+      islandora_ead_utility_eadxml_split($_FILES['files']['tmp_name']['ead_upload'], $mods_identifier_solr_fieldname, $namespace) :
       array());
   islandora_ead_utility_add_operation_links_and_title($ead_and_mods_records);
   $form['cancel'] = array(
@@ -575,9 +557,6 @@ function islandora_ead_utility_get_ead_mods_bib_id_from_record($recordobj_or_xml
  *
  * @param string $filepath
  *   The path to the uploaded EAD Finding Aid file.
- * @param string $ead_identifier_xpath
- *   The value to determine the identifier from a EAD xml that comes from parsing
- * EAD Finding Aid for each object container.
  * @param string $mods_identifier_solr_fieldname
  *   The value to search the existing Islandora repository for an object that
  * matches the EAD identifier value.
@@ -590,11 +569,9 @@ function islandora_ead_utility_get_ead_mods_bib_id_from_record($recordobj_or_xml
  *   An associative array that contains info about the EAD and MODS files that
  * were able to be parsed out of the EAD Finding Aid.
  */
-function islandora_ead_utility_eadxml_split($filepath, $ead_identifier_xpath = '', $mods_identifier_solr_fieldname = '', $namespace = '') {
+function islandora_ead_utility_eadxml_split($filepath, $mods_identifier_solr_fieldname = '', $namespace = '') {
   module_load_include('inc', 'islandora_ead_utility', 'includes/solr_query');
 
-  $ead_identifier_xpath = (!$ead_identifier_xpath) ?
-      variable_get('islandora_ead_utility_ead_identifier_tag_xpath', EAD_XPATH_PLACEHOLDER) : $ead_identifier_xpath;
   $mods_identifier_solr_fieldname = (!$mods_identifier_solr_fieldname) ?
       variable_get('islandora_ead_utility_mods_solr_fieldname', EAD_UTIL_MODS_SOLR_FIELDNAME_PLACEHOLDER) : $mods_identifier_solr_fieldname;
   $namespace = (!$namespace) ?
@@ -652,38 +629,16 @@ function islandora_ead_utility_eadxml_split($filepath, $ead_identifier_xpath = '
         $recalc_mods = implode("\n", $recalc_mods_arr);
         if ($current_filename) {
           $full_filename = $temp_path . '/' . $current_filename;
-          $fedora_PID = islandora_ead_utility_find_object_pid_from_eadxml_file($recalc_mods, $ead_identifier_xpath, $mods_identifier_solr_fieldname);
           $return_files[] = array(
               'MODS size' => filesize($full_filename),
               'MODS' => $full_filename,
               'bib_id' => $bib_id,
-              'Fedora_PID' => $fedora_PID);
+              'Fedora_PID' => $namespace . ':' . $bib_id);
           file_put_contents($full_filename, $recalc_mods);
         }
       }
     }
   }
-return $return_files;
-//  $i = 0;
-//  //ead:dsc/*[name()='ead:c' or name()='ead:c01' or name()='ead:c02' or name() = 'ead:c03']/ead:did
-////  foreach ($xpath->evaluate("//dsc/*[name()='c' or name()='c01' or name()='c02' or name() = 'c03']/did") as $node) {
-//  $xpath_expression = "//ead:dsc/*/ead:did";
-//  $eadbody = $doc->getElementsByTagName('ead')->item(0);
-//
-//  $entries = $xpath->evaluate($xpath_expression, $eadbody, FALSE );
-//  foreach ($entries as $node) {
-//    $str = str_replace("<ead:record>", '<ead:record xmlns:ead="http://www.loc.gov/ead/ead.xsd">', $doc->saveHTML($node));
-//
-//    $results = islandora_ead_utility_get_ead_mods_bib_id_from_record($str, $i, $namespace);
-//    $return_files[$i]['bib_id'] = $results['bib_id'];
-//    $ead_contents = file_get_contents($results['EAD']);
-//    $return_files[$i]['Fedora_PID'] = islandora_ead_utility_find_object_pid_from_eadxml_file($ead_contents, $ead_identifier_xpath, $mods_identifier_solr_fieldname);
-//    $return_files[$i]['EAD'] = $results['EAD'];
-//    $return_files[$i]['MODS'] = $results['MODS'];
-//    $return_files[$i]['EAD size'] = filesize($results['EAD']);
-//    $return_files[$i]['MODS size'] = filesize($results['MODS']);
-//    $i++;
-//  }
   return $return_files;
 }
 

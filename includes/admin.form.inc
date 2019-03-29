@@ -25,17 +25,6 @@ function islandora_ead_utility_admin_settings(array $form, array &$form_state) {
               'admin/islandora/tools/islandora_ead_utility'),
     );
   }
-  $form['ead_identifier_tag_xpath'] = array(
-    '#title' => t('XPath to Finding Aid object container node'),
-    '#type' => 'textfield',
-    '#size' => 120,
-    '#attributes' => array(
-      'placeholder' => EAD_XPATH_PLACEHOLDER,
-    ),
-    '#description' => t('This should be a legal XPath that returns the single ' .
-      '"identifier" node that is to be matched with a possible object\'s MODS field value.'),
-    '#default_value' => variable_get('islandora_ead_utility_ead_identifier_tag_xpath', ''),
-  );
   $form['mods_solr_fieldname'] = array(
     '#title' => t('MODS identifier Solr fieldname.'),
     '#type' => 'textfield',
@@ -125,11 +114,7 @@ function islandora_ead_utility_admin_settings_submit(array $form, array &$form_s
           $form_state['values']['temp_path'];
       variable_set('islandora_ead_utility_temp_path', $use_value);
 
-      // If either of these are blank, store the value defined in the placeholder.
-      $use_value = ($form_state['values']['ead_identifier_tag_xpath'] == '') ?
-          EAD_XPATH_PLACEHOLDER :
-          $form_state['values']['ead_identifier_tag_xpath'];
-      variable_set('islandora_ead_utility_ead_identifier_tag_xpath', $use_value);
+      // If this is blank, store the value defined in the placeholder.
       $use_value = ($form_state['values']['mods_solr_fieldname'] == '') ?
           EAD_UTIL_MODS_SOLR_FIELDNAME_PLACEHOLDER :
           $form_state['values']['mods_solr_fieldname'];
