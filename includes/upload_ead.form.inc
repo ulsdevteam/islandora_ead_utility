@@ -115,7 +115,7 @@ function islandora_ead_utility_form_step1($form, &$form_state) {
     '#type' => 'file',
     '#title' => t('EAD Finding Aid'),
     '#description' => t('An EAD Finding Aid containing the metadata for a number of objects.'),
-    '#upload_location' => variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', '/tmp')),
+    '#upload_location' => variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', file_directory_temp())),
     '#upload_validators' => array(
       'file_validate_extensions' => array(''),
     ),
@@ -231,17 +231,9 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
         array('data' => 'EAD size', 'class' => array('imu_numeric_header')),
         array('data' => 'MODS size', 'class' => array('imu_numeric_header')),
     );
-    $temp_path = drupal_realpath(variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', '/tmp')));
+    $temp_path = drupal_realpath(variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', file_directory_temp())));
     $applyall_files = $download_files = array();
     foreach ($ead_and_mods_records as $idx => $ead_and_mods_arr) {
-      if (array_key_exists('EAD', $ead_and_mods_arr) && array_key_exists('filepath', $ead_and_mods_arr['EAD'])) {
-        $download_files[] = $ead_and_mods_arr['EAD']['filepath'] . '
-';
-        if ($ead_and_mods_arr['Fedora_PID']) {
-          $applyall_files[] = $ead_and_mods_arr['Raw_Fedora_PID'] . '=' . $temp_path . '/' . $ead_and_mods_arr['EAD']['filepath'] . '
-';
-        }
-      }
       if (array_key_exists('MODS', $ead_and_mods_arr) && array_key_exists('filepath', $ead_and_mods_arr['MODS'])) {
         $download_files[] = $ead_and_mods_arr['MODS']['filepath'] . '
 ';
@@ -256,9 +248,9 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
       unset($ead_and_mods_records[$idx]['Raw_Fedora_PID']);
     }
 
-    $temp_records_manifest_filename = tempnam(variable_get('file_temporary_path', '/tmp'), 'ead_utility_downloadall_manifest_');
+    $temp_records_manifest_filename = tempnam(variable_get('file_temporary_path', file_directory_temp()), 'ead_utility_downloadall_manifest_');
     file_put_contents($temp_records_manifest_filename, $download_files);
-    $temp_applyall_manifest_filename = tempnam(variable_get('file_temporary_path', '/tmp'), 'ead_utility_applyall_manifest_');
+    $temp_applyall_manifest_filename = tempnam(variable_get('file_temporary_path', file_directory_temp()), 'ead_utility_applyall_manifest_');
     file_put_contents($temp_applyall_manifest_filename, $applyall_files);
     $form['download_all_link'] = array(
       '#type' => 'item',
@@ -300,7 +292,6 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
  */
 function islandora_ead_utility_add_operation_links_and_title(&$ead_and_mods_records) {
   foreach ($ead_and_mods_records as $index => $arr) {
-    $ead_and_mods_records[$index]['EAD'] = islandora_ead_utility_get_operation_links('EAD', $arr);
     $ead_and_mods_records[$index]['MODS'] = islandora_ead_utility_get_operation_links('MODS', $arr);
     $ead_and_mods_records[$index]['Raw_Fedora_PID'] = $ead_and_mods_records[$index]['Fedora_PID'];
     $ead_and_mods_records[$index]['Fedora_PID'] =  ($ead_and_mods_records[$index]['Fedora_PID']) ? l($ead_and_mods_records[$index]['Fedora_PID'],
@@ -309,10 +300,6 @@ function islandora_ead_utility_add_operation_links_and_title(&$ead_and_mods_reco
           'attributes' => array(
               'target' => '_blank'
       ))) : '';
-    $ead_and_mods_records[$index]['EAD size'] = array(
-        'data' => number_format($ead_and_mods_records[$index]['EAD size']),
-          'class' => array('imu_numeric'),
-        );
     $ead_and_mods_records[$index]['MODS size'] = array(
         'data' => number_format($ead_and_mods_records[$index]['MODS size']),
           'class' => array('imu_numeric'),
@@ -519,7 +506,7 @@ function islandora_ead_utility_get_ead_mods_bib_id_from_record($recordobj_or_xml
         '/transforms/bibIDgrabber.xsl';
 
   $return_array = array();
-  $temp_path = drupal_realpath(variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', '/tmp')));
+  $temp_path = drupal_realpath(variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', file_directory_temp())));
   $filename = $temp_path . '/ead_record_' . $index . '.ead.xml';
   $tmp = file_put_contents($filename, $recordobj_or_xml);
   $eadxml_file = fopen($filename, "wb");
@@ -612,37 +599,91 @@ function islandora_ead_utility_eadxml_split($filepath, $ead_identifier_xpath = '
       variable_get('islandora_ead_utility_mods_solr_fieldname', EAD_UTIL_MODS_SOLR_FIELDNAME_PLACEHOLDER) : $mods_identifier_solr_fieldname;
   $namespace = (!$namespace) ?
       variable_get('islandora_ead_utility_namespace', 'islandora') : $namespace;
+  $temp_path = drupal_realpath(variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', file_directory_temp())));
 
   $return_files = array();
   $eadxml = file_get_contents($filepath);
-
   // Use PHP's DOM Document to pull out each of the EADXML records.
   $doc = new DOMDocument('1.0', 'utf-8'); // DomDocument();
   $doc->loadXML($eadxml);
-  $xpath = new DOMXPath($doc);
-  $xpath->registerNamespace("ead", "urn:isbn:1-931666-22-9");
 
-  $i = 0;
-  //ead:dsc/*[name()='ead:c' or name()='ead:c01' or name()='ead:c02' or name() = 'ead:c03']/ead:did
-//  foreach ($xpath->evaluate("//dsc/*[name()='c' or name()='c01' or name()='c02' or name() = 'c03']/did") as $node) {
-  $xpath_expression = "//ead:dsc/*/ead:did";
-  $eadbody = $doc->getElementsByTagName('ead')->item(0);
-          
-  $entries = $xpath->evaluate($xpath_expression, $eadbody, FALSE );
-  foreach ($entries as $node) {
-    $str = $doc->saveHTML($node);
-    $str = str_replace("<ead:record>", '<ead:record xmlns:ead="http://www.loc.gov/ead/ead.xsd">', $str);
+  // I think we want to transform the EAD xml into CSV - and then use the
+  // CSV to MODS utility to turn that into MODS xml files.
+  $eadxmlCheckIn_xsl = drupal_realpath(drupal_get_path('module', 'islandora_ead_utility')) .
+        '/transforms/DAOcheckIn.xsl';
+  $checkin_CSV_file = ($eadxml) ? islandora_ead_utility_runXslTransform(
+          array(
+            'xsl' => $eadxmlCheckIn_xsl,
+            'input' => $eadxml,
+          )
+        ) : '[]';
 
-    $results = islandora_ead_utility_get_ead_mods_bib_id_from_record($str, $i, $namespace);
-    $return_files[$i]['bib_id'] = $results['bib_id'];
-    $ead_contents = file_get_contents($results['EAD']);
-    $return_files[$i]['Fedora_PID'] = islandora_ead_utility_find_object_pid_from_eadxml_file($ead_contents, $ead_identifier_xpath, $mods_identifier_solr_fieldname);
-    $return_files[$i]['EAD'] = $results['EAD'];
-    $return_files[$i]['MODS'] = $results['MODS'];
-    $return_files[$i]['EAD size'] = filesize($results['EAD']);
-    $return_files[$i]['MODS size'] = filesize($results['MODS']);
-    $i++;
+  $eadxmlead2mods_xsl = drupal_realpath(drupal_get_path('module', 'islandora_ead_utility')) .
+        '/transforms/ead2mods.xsl';
+  $mods_files = ($eadxml) ? islandora_ead_utility_runXslTransform(
+          array(
+            'xsl' => $eadxmlead2mods_xsl,
+            'input' => $eadxml,
+          )
+        ) : '';
+
+  if ($mods_files) {
+    $splits = explode('[[END]]', $mods_files);
+    // Loop through all of the files -- denoted by the delimiter string of
+    // "[[END]]".  For each string, if not present, add the
+    //  "< ?xml version="1.0" encoding="utf-8"? >" to the top and take out the
+    // line that contains "filename=" keeping the filename to save the MODS.
+    foreach ($splits as $possible_mods_file) {
+      $possible_mods_file = trim($possible_mods_file);
+      if ($possible_mods_file) {
+        $current_mods = (strstr($possible_mods_file, 'xml version')) ? $possible_mods_file : '<' . '?xml version="1.0" encoding="utf-8"?' . '>' . "\n" . $possible_mods_file;
+        $lines = explode("\n", $current_mods);
+        $bib_id = $current_filename = '';
+        $recalc_mods_arr = array();
+        foreach ($lines as $line) {
+          if (!$current_filename && strstr($line, 'filename=')) {
+            $current_filename = trim(str_replace("filename=", "", $line));
+            $bib_id = str_replace(".mods.xml", "", $current_filename);
+          }
+          else {
+            $recalc_mods_arr[] = $line;
+          }
+        }
+        $recalc_mods = implode("\n", $recalc_mods_arr);
+        if ($current_filename) {
+          $full_filename = $temp_path . '/' . $current_filename;
+          $fedora_PID = islandora_ead_utility_find_object_pid_from_eadxml_file($recalc_mods, $ead_identifier_xpath, $mods_identifier_solr_fieldname);
+          $return_files[] = array(
+              'MODS size' => filesize($full_filename),
+              'MODS' => $full_filename,
+              'bib_id' => $bib_id,
+              'Fedora_PID' => $fedora_PID);
+          file_put_contents($full_filename, $recalc_mods);
+        }
+      }
+    }
   }
+return $return_files;
+//  $i = 0;
+//  //ead:dsc/*[name()='ead:c' or name()='ead:c01' or name()='ead:c02' or name() = 'ead:c03']/ead:did
+////  foreach ($xpath->evaluate("//dsc/*[name()='c' or name()='c01' or name()='c02' or name() = 'c03']/did") as $node) {
+//  $xpath_expression = "//ead:dsc/*/ead:did";
+//  $eadbody = $doc->getElementsByTagName('ead')->item(0);
+//
+//  $entries = $xpath->evaluate($xpath_expression, $eadbody, FALSE );
+//  foreach ($entries as $node) {
+//    $str = str_replace("<ead:record>", '<ead:record xmlns:ead="http://www.loc.gov/ead/ead.xsd">', $doc->saveHTML($node));
+//
+//    $results = islandora_ead_utility_get_ead_mods_bib_id_from_record($str, $i, $namespace);
+//    $return_files[$i]['bib_id'] = $results['bib_id'];
+//    $ead_contents = file_get_contents($results['EAD']);
+//    $return_files[$i]['Fedora_PID'] = islandora_ead_utility_find_object_pid_from_eadxml_file($ead_contents, $ead_identifier_xpath, $mods_identifier_solr_fieldname);
+//    $return_files[$i]['EAD'] = $results['EAD'];
+//    $return_files[$i]['MODS'] = $results['MODS'];
+//    $return_files[$i]['EAD size'] = filesize($results['EAD']);
+//    $return_files[$i]['MODS size'] = filesize($results['MODS']);
+//    $i++;
+//  }
   return $return_files;
 }
 

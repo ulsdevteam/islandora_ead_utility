@@ -82,5 +82,4 @@ function islandora_ead_utility_apply_all_datastream_handler($form, &$form_state,
 
 function islandora_ead_utility_apply_all_datastream_handler_submit($form, &$form_state) {
   drupal_set_message('form submitted');
-  dpm($form_state);
 }
