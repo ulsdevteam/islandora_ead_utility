@@ -40,7 +40,7 @@ function islandora_ead_utility_download_all($form, &$form_state, $hash) {
     $files = explode("\r\n", $manifest);
 
     $initial_dir = getcwd();
-    $temp_path = variable_get('file_temporary_path', '/tmp');
+    $temp_path = variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', '/tmp'));
     chdir($temp_path);
     $temp_zip_filename = tempnam($temp_path, 'eadmods_zip_');
 

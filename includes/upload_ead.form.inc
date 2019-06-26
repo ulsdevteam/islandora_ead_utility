@@ -207,11 +207,9 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
   if (!$is_completed && ($_FILES['files']['type']['ead_upload'] == 'text/xml')) {
     $header = array(
         'bib_id',
-        'Fedora PID',
-        'EAD',
-        array('data' => 'MODS', 'title' => 'Transformed EAD into MODS v3.5 using MARC21slim2MODS3-5.xsl'),
-        array('data' => 'EAD size', 'class' => array('imu_numeric_header')),
         array('data' => 'MODS size', 'class' => array('imu_numeric_header')),
+        array('data' => 'MODS', 'title' => 'Transformed EAD into MODS v3.5 using MARC21slim2MODS3-5.xsl'),
+        'Fedora_PID',
     );
     $temp_path = drupal_realpath(variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', file_directory_temp())));
     $applyall_files = $download_files = array();
@@ -220,7 +218,7 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
         $download_files[] = $ead_and_mods_arr['MODS']['filepath'] . '
 ';
         if ($ead_and_mods_arr['Fedora_PID']) {
-          $applyall_files[] = $ead_and_mods_arr['Raw_Fedora_PID'] . '=' . $temp_path . '/' . $ead_and_mods_arr['MODS']['filepath'] . '
+          $applyall_files[] = $ead_and_mods_arr['Raw_Fedora_PID'] . '=' . $ead_and_mods_arr['MODS']['filepath'] . '
 ';
         }
       }
@@ -230,9 +228,9 @@ function islandora_ead_utility_form_step2($form, &$form_state, $is_completed = F
       unset($ead_and_mods_records[$idx]['Raw_Fedora_PID']);
     }
 
-    $temp_records_manifest_filename = tempnam(variable_get('file_temporary_path', file_directory_temp()), 'ead_utility_downloadall_manifest_');
+    $temp_records_manifest_filename = tempnam($temp_path, 'ead_utility_downloadall_manifest_');
     file_put_contents($temp_records_manifest_filename, $download_files);
-    $temp_applyall_manifest_filename = tempnam(variable_get('file_temporary_path', file_directory_temp()), 'ead_utility_applyall_manifest_');
+    $temp_applyall_manifest_filename = tempnam($temp_path, 'ead_utility_applyall_manifest_');
     file_put_contents($temp_applyall_manifest_filename, $applyall_files);
     $form['download_all_link'] = array(
       '#type' => 'item',
@@ -276,12 +274,14 @@ function islandora_ead_utility_add_operation_links_and_title(&$ead_and_mods_reco
   foreach ($ead_and_mods_records as $index => $arr) {
     $ead_and_mods_records[$index]['MODS'] = islandora_ead_utility_get_operation_links('MODS', $arr);
     $ead_and_mods_records[$index]['Raw_Fedora_PID'] = $ead_and_mods_records[$index]['Fedora_PID'];
-    $ead_and_mods_records[$index]['Fedora_PID'] =  ($ead_and_mods_records[$index]['Fedora_PID']) ? l($ead_and_mods_records[$index]['Fedora_PID'],
+    $obj = islandora_object_load($ead_and_mods_records[$index]['Fedora_PID']);
+
+    $ead_and_mods_records[$index]['Fedora_PID'] =  ($ead_and_mods_records[$index]['Fedora_PID'] && is_object($obj)) ? l($ead_and_mods_records[$index]['Fedora_PID'],
             'islandora/object/' . $ead_and_mods_records[$index]['Fedora_PID'] . '/manage',
       array(
           'attributes' => array(
               'target' => '_blank'
-      ))) : '';
+      ))) : $ead_and_mods_records[$index]['Fedora_PID'];
     $ead_and_mods_records[$index]['MODS size'] = array(
         'data' => number_format($ead_and_mods_records[$index]['MODS size']),
           'class' => array('imu_numeric'),
@@ -322,7 +322,8 @@ function islandora_ead_utility_get_operation_links($subject, $arr) {
               'target' => '_blank',
               'title' => 'Download ' . $subject . ' record'
       )));
-  if (user_access(ISLANDORA_EAD_UTILITY_CAN_APPLY_DATASTREAM) && isset($arr['Fedora_PID']) && $arr['Fedora_PID']) {
+  $obj = islandora_object_load($arr['Fedora_PID']);
+  if (user_access(ISLANDORA_EAD_UTILITY_CAN_APPLY_DATASTREAM) && isset($arr['Fedora_PID']) && $arr['Fedora_PID'] && (is_object($obj))) {
     $links_arr[] = l('Apply', 'admin/islandora/tools/islandora_ead_utility/apply_datastream/' . $b64_filename_bib_id_subj,
         array(
             'attributes' => array(
@@ -630,9 +631,9 @@ function islandora_ead_utility_eadxml_split($filepath, $mods_identifier_solr_fie
         if ($current_filename) {
           $full_filename = $temp_path . '/' . $current_filename;
           $return_files[] = array(
+              'bib_id' => $bib_id,
               'MODS size' => filesize($full_filename),
               'MODS' => $full_filename,
-              'bib_id' => $bib_id,
               'Fedora_PID' => $namespace . ':' . $bib_id);
           file_put_contents($full_filename, $recalc_mods);
         }

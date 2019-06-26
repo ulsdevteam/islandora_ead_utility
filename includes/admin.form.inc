@@ -46,7 +46,7 @@ function islandora_ead_utility_admin_settings(array $form, array &$form_state) {
       (user_access('administer site configuration') ?
       l('temporary directory', 'admin/config/media/file-system') : t('temporary directory')) .
       t(' will be used.'),
-    '#default_value' => variable_get('islandora_ead_utility_temp_path', ''),
+    '#default_value' => variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', '/tmp')),
   );
   $form['namespace'] = array(
     '#title' => t('Fedora namespace'),

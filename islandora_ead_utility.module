@@ -152,7 +152,6 @@ function islandora_ead_utility_theme() {
       'variables' => array(
           'filename' => '',
           'file_contents' => '',
-          'subject' => '',
           'has_object' => FALSE,
           'Fedora_PID' => '',
       ),
