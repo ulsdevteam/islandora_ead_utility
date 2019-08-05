@@ -16,7 +16,7 @@
         <xsl:param name="position" select="position()"/>
         <xsl:for-each select="ead:dao">
             <xsl:variable name="barcode" select="normalize-space(@ns2:href)"/>
-            <xsl:variable name="filename" select="concat($barcode,'.mods.xml')"/>
+            <xsl:variable name="filename" select="concat($barcode,'_MODS.xml')"/>
             
             <xsl:text>filename=</xsl:text><xsl:value-of select="$filename" /><xsl:text>&#10;</xsl:text>
                 <!-- <xsl:result-document href="{$filename}"> -->

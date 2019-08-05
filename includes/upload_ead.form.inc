@@ -479,6 +479,8 @@ function islandora_ead_utility_runXslTransform($info) {
  *   The identifier value.
  */
 function islandora_ead_utility_get_ead_mods_bib_id_from_record($recordobj_or_xml, $index = 0, $namespace) {
+  $namespace = str_replace(":", "", $namespace);
+
   $ead2mods_xsl = drupal_realpath(drupal_get_path('module', 'islandora_ead_utility')) .
         '/transforms/MARC21slim2MODS3-5.xsl';
   $modsxmlRecordExtract_xsl = drupal_realpath(drupal_get_path('module', 'islandora_ead_utility')) .
@@ -577,6 +579,7 @@ function islandora_ead_utility_eadxml_split($filepath, $mods_identifier_solr_fie
       variable_get('islandora_ead_utility_mods_solr_fieldname', EAD_UTIL_MODS_SOLR_FIELDNAME_PLACEHOLDER) : $mods_identifier_solr_fieldname;
   $namespace = (!$namespace) ?
       variable_get('islandora_ead_utility_namespace', 'islandora') : $namespace;
+  $namespace = str_replace(":", "", $namespace);
   $temp_path = drupal_realpath(variable_get('islandora_ead_utility_temp_path', variable_get('file_temporary_path', file_directory_temp())));
 
   $return_files = array();
@@ -595,7 +598,6 @@ function islandora_ead_utility_eadxml_split($filepath, $mods_identifier_solr_fie
             'input' => $eadxml,
           )
         ) : '[]';
-
   $eadxmlead2mods_xsl = drupal_realpath(drupal_get_path('module', 'islandora_ead_utility')) .
         '/transforms/ead2mods.xsl';
   $mods_files = ($eadxml) ? islandora_ead_utility_runXslTransform(
@@ -621,7 +623,9 @@ function islandora_ead_utility_eadxml_split($filepath, $mods_identifier_solr_fie
         foreach ($lines as $line) {
           if (!$current_filename && strstr($line, 'filename=')) {
             $current_filename = trim(str_replace("filename=", "", $line));
-            $bib_id = str_replace(".mods.xml", "", $current_filename);
+            $bib_id = str_replace("_MODS.xml", "", $current_filename);
+            // Add the namespace prefix to the filenames.
+            $current_filename = $namespace . '_' . $current_filename;
           }
           else {
             $recalc_mods_arr[] = $line;
