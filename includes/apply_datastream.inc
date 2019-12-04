@@ -11,15 +11,15 @@
  */
 function islandora_ead_utility_apply_datastream_handler($form, &$form_state, $hash) {
   $joined = base64_decode($hash);
-  @list($filename, $bib_id, $subject, $fedora_PID) = explode("|", $joined);
+  @list($filename, $identifier, $subject, $fedora_PID) = explode("|", $joined);
   // Set a value for display purposes.
-  $bib_id = ($bib_id) ? $bib_id : 'unknown identifier';
+  $identifier = ($identifier) ? $identifier : 'unknown identifier';
   $islandora_object = islandora_object_load($fedora_PID);
   if (array_key_exists('hash', $_POST)) {
     return array('foo' => array('#type' => 'item',
         '#markup' => theme('islandora_ead_utility_apply_datastream', array(
         'file_contents' => '',
-        'filename' => 'For "' . $bib_id . '", viewing ' . $subject . ' file: ' . $filename . '.',
+        'filename' => 'For "' . $identifier . '", viewing ' . $subject . ' file: ' . $filename . '.',
         'has_object' => (is_object($islandora_object)),
         'Fedora_PID' => (is_object($islandora_object) ?
           l($fedora_PID, 'islandora/object/' . $fedora_PID) :
@@ -47,7 +47,7 @@ function islandora_ead_utility_apply_datastream_handler($form, &$form_state, $ha
       '#type' => 'item',
       '#markup' => theme('islandora_ead_utility_apply_datastream', array(
         'file_contents' => $file_contents,
-        'filename' => 'For "' . $bib_id . '", viewing ' . $subject . ' file: ' . $filename . '.',
+        'filename' => 'For "' . $identifier . '", viewing ' . $subject . ' file: ' . $filename . '.',
         'has_object' => (is_object($islandora_object)),
         'Fedora_PID' => (is_object($islandora_object) ?
           l($fedora_PID, 'islandora/object/' . $fedora_PID) :
@@ -63,12 +63,12 @@ function islandora_ead_utility_apply_datastream_handler_submit($form, &$form_sta
   if ($form_state['triggering_element']['#value'] == t('Apply Datastream')) {
     $hash = $form_state['values']['hash'];
     $joined = base64_decode($hash);
-    @list($filename, $bib_id, $subject, $fedora_PID) = explode("|", $joined);
+    @list($filename, $identifier, $subject, $fedora_PID) = explode("|", $joined);
     $file_contents = file_exists($filename) ? file_get_contents($filename) :
         '<i>File did not exist or the permissions were not sufficient to access ' .
         'that file\'s path.</i>';
     // Set a value for display purposes.
-    $bib_id = ($bib_id) ? $bib_id : 'unknown identifier';
+    $identifier = ($identifier) ? $identifier : 'unknown identifier';
     $islandora_object = islandora_object_load($fedora_PID);
     if (is_object($islandora_object)) {
       $pathinfo = pathinfo($filename);

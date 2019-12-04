@@ -11,13 +11,13 @@
  */
 function islandora_ead_utility_download($form, &$form_state, $hash) {
   $joined = base64_decode($hash);
-  @list($filename, $bib_id, $subject, $fedora_PID) = explode("|", $joined);
+  @list($filename, $identifier, $subject, $fedora_PID) = explode("|", $joined);
 
-  if (file_exists($filename) && $bib_id && $subject) {
+  if (file_exists($filename) && $identifier && $subject) {
     // Set a value for display purposes.
-    $bib_id = ($bib_id) ? $bib_id : 'unknown identifier';
+    $identifier = ($identifier) ? $identifier : 'unknown identifier';
 
-    $download_filename = $bib_id . '_' . $subject . '.xml';
+    $download_filename = $identifier . '_' . $subject . '.xml';
 
     header('Content-Type: text/xml');
     header('Content-disposition: attachment; filename='.$download_filename);

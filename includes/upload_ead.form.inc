@@ -306,17 +306,17 @@ function islandora_ead_utility_get_operation_links($subject, $arr) {
   // Based on user permissions, make links to View, Download, Apply Datastream.
   $links_arr = array();
 
-  $b64_filename_bib_id_subj = base64_encode($arr[$subject] . '|' .$arr['bib_id'] . '|' . $subject . '|' . $arr['Fedora_PID']);
+  $b64_filename_identifier_subj = base64_encode($arr[$subject] . '|' .$arr['bib_id'] . '|' . $subject . '|' . $arr['Fedora_PID']);
   $file_contents = file_get_contents($arr[$subject]);
   $file_truncated_ellipsis = (strlen($file_contents) > 600) ? ' ... ' : '';
 
   // Download single file
-  $links_arr[] = l('View', 'admin/islandora/tools/islandora_ead_utility/viewer/' . $b64_filename_bib_id_subj,
+  $links_arr[] = l('View', 'admin/islandora/tools/islandora_ead_utility/viewer/' . $b64_filename_identifier_subj,
       array(
           'attributes' => array(
               'target' => '_blank'
       )));
-  $links_arr[] = l('Download', 'admin/islandora/tools/islandora_ead_utility/download/' . $b64_filename_bib_id_subj,
+  $links_arr[] = l('Download', 'admin/islandora/tools/islandora_ead_utility/download/' . $b64_filename_identifier_subj,
       array(
           'attributes' => array(
               'target' => '_blank',
@@ -324,7 +324,7 @@ function islandora_ead_utility_get_operation_links($subject, $arr) {
       )));
   $obj = islandora_object_load($arr['Fedora_PID']);
   if (user_access(ISLANDORA_EAD_UTILITY_CAN_APPLY_DATASTREAM) && isset($arr['Fedora_PID']) && $arr['Fedora_PID'] && (is_object($obj))) {
-    $links_arr[] = l('Apply', 'admin/islandora/tools/islandora_ead_utility/apply_datastream/' . $b64_filename_bib_id_subj,
+    $links_arr[] = l('Apply', 'admin/islandora/tools/islandora_ead_utility/apply_datastream/' . $b64_filename_identifier_subj,
         array(
             'attributes' => array(
                 'target' => '_blank',
@@ -478,7 +478,7 @@ function islandora_ead_utility_runXslTransform($info) {
  * @return string
  *   The identifier value.
  */
-function islandora_ead_utility_get_ead_mods_bib_id_from_record($recordobj_or_xml, $index = 0, $namespace) {
+function islandora_ead_utility_get_ead_mods_identifier_from_record($recordobj_or_xml, $index = 0, $namespace) {
   $namespace = str_replace(":", "", $namespace);
 
   $ead2mods_xsl = drupal_realpath(drupal_get_path('module', 'islandora_ead_utility')) .
@@ -513,20 +513,20 @@ function islandora_ead_utility_get_ead_mods_bib_id_from_record($recordobj_or_xml
     $eadxml_findingaid_record = $recordobj_or_xml;
   }
 
-  $bib_id = ($eadxml_findingaid_record) ? islandora_ead_utility_runXslTransform(
+  $identifier = ($eadxml_findingaid_record) ? islandora_ead_utility_runXslTransform(
             array(
               'xsl' => $bibIDgrabber_xsl,
               'input' => $eadxml_findingaid_record,
             )
           ) : '';
   // Delete the initial journal record collection file and save this using the
-  // $bib_id value
+  // $identifier value
   @unlink($filename);
 
-  $filename = $temp_path . '/' . $namespace. '_'.  $bib_id . '_EAD.xml';
+  $filename = $temp_path . '/' . $namespace. '_'.  $identifier . '_EAD.xml';
 
   $bytes_written = file_put_contents($filename, $ead_record);
-  $return_array['bib_id'] = $bib_id;
+  $return_array['bib_id'] = $identifier;
   $return_array['EAD'] = $filename;
 
   $modsCollection = ($eadxml_findingaid_record) ? islandora_ead_utility_runXslTransform(
@@ -542,7 +542,7 @@ function islandora_ead_utility_get_ead_mods_bib_id_from_record($recordobj_or_xml
             )
           ) : '';
 
-  $filename = $temp_path . '/' . $namespace. '_'.  $bib_id . '_MODS.xml';
+  $filename = $temp_path . '/' . $namespace. '_'.  $identifier . '_MODS.xml';
   $bytes_written = file_put_contents($filename, $MODS);
   $return_array['MODS'] = $filename;
 
@@ -618,12 +618,12 @@ function islandora_ead_utility_eadxml_split($filepath, $mods_identifier_solr_fie
       if ($possible_mods_file) {
         $current_mods = (strstr($possible_mods_file, 'xml version')) ? $possible_mods_file : '<' . '?xml version="1.0" encoding="utf-8"?' . '>' . "\n" . $possible_mods_file;
         $lines = explode("\n", $current_mods);
-        $bib_id = $current_filename = '';
+        $identifier = $current_filename = '';
         $recalc_mods_arr = array();
         foreach ($lines as $line) {
           if (!$current_filename && strstr($line, 'filename=')) {
             $current_filename = trim(str_replace("filename=", "", $line));
-            $bib_id = str_replace("_MODS.xml", "", $current_filename);
+            $identifier = str_replace("_MODS.xml", "", $current_filename);
             // Add the namespace prefix to the filenames.
             $current_filename = $namespace . '_' . $current_filename;
           }
@@ -635,10 +635,10 @@ function islandora_ead_utility_eadxml_split($filepath, $mods_identifier_solr_fie
         if ($current_filename) {
           $full_filename = $temp_path . '/' . $current_filename;
           $return_files[] = array(
-              'bib_id' => $bib_id,
+              'bib_id' => $identifier,
               'MODS size' => filesize($full_filename),
               'MODS' => $full_filename,
-              'Fedora_PID' => $namespace . ':' . $bib_id);
+              'Fedora_PID' => $namespace . ':' . $identifier);
           file_put_contents($full_filename, $recalc_mods);
         }
       }
