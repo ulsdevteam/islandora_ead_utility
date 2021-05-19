@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns2="http://www.w3.org/1999/xlink" 
- xpath-default-namespace="urn:isbn:1-931666-22-9" 
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns2="http://www.w3.org/1999/xlink"
+ xpath-default-namespace="urn:isbn:1-931666-22-9"
  xmlns:ead="urn:isbn:1-931666-22-9"
  xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0">
     <xsl:output method="text" indent="no" encoding="utf-8"/>
@@ -13,7 +13,7 @@
         <xsl:param name="containers" select="//ead:c01 | //ead:c02 | //ead:c03 | //ead:c04 | //ead:c05 | //ead:c06 | //ead:c07 | //ead:c08 | //ead:c09" />
         <xsl:param name="position" select="position()" />
         <xsl:for-each select="ead:dao">
-            <xsl:value-of select="normalize-space(@ns2:href)" />
+            <xsl:value-of select="normalize-space(@xlink:href)" />
             <xsl:text>&#09;</xsl:text>
             <xsl:for-each select="../../ead:did/ead:container | ../ead:did/ead:container">
                 <xsl:if test="@type='file' or @type='folder' or @type='Folder' or @type='Folders' or @type='Item' or @type='item' or @type='oversize' or @type='Oversize' or @type='volume' or @type='Volume' or @type='Volumes'">
@@ -34,6 +34,7 @@
                     <xsl:text> </xsl:text>
             <xsl:value-of select="../ead:did/ead:unitdate" />
             <!-- test to account for duplicate daodesc title where there is only one dao per folder -->
+            <!--
             <xsl:if test="normalize-space(concat(../ead:did/ead:unittitle, ', ',  ../ead:did/ead:unitdate))!=normalize-space(ead:daodesc)">
                 <xsl:if test="normalize-space(../ead:did/ead:unittitle)!=normalize-space(ead:daodesc)">
                     <xsl:if test="normalize-space(concat(../ead:did/ead:unittitle,  ../ead:did/ead:unitdate))=normalize-space(ead:daodesc)">
@@ -42,6 +43,7 @@
                         </xsl:if>
                 </xsl:if>
             </xsl:if>
+            -->
             <xsl:text>&#09;</xsl:text>
             <xsl:value-of select="normalize-space(//ead:eadid)" />
             <xsl:text>&#10;</xsl:text>
