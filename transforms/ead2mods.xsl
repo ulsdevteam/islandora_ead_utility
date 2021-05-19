@@ -15,9 +15,9 @@
             select="//ead:c01 | //ead:c02 | //ead:c03 | //ead:c04 | //ead:c05 | //ead:c06 | //ead:c07 | //ead:c08 | //ead:c09"/>
         <xsl:param name="position" select="position()"/>
         <xsl:for-each select="ead:dao">
-            <xsl:variable name="barcode" select="normalize-space(@ns2:href)"/>
+            <xsl:variable name="barcode" select="normalize-space(@xlink:href)"/>
             <xsl:variable name="filename" select="concat($barcode,'_MODS.xml')"/>
-            
+
             <xsl:text>filename=</xsl:text><xsl:value-of select="$filename" /><xsl:text>&#10;</xsl:text>
                 <!-- <xsl:result-document href="{$filename}"> -->
                 <mods:mods
@@ -30,7 +30,7 @@
                             <xsl:value-of select="normalize-space(../ead:did/ead:unittitle)"/>
                         </mods:title>
                         <!-- test to account for duplicate daodesc title where there is only one dao per folder -->
-                        <xsl:if
+                       <!-- <xsl:if
                             test="normalize-space(concat(../ead:did/ead:unittitle, ', ',  ../ead:did/ead:unitdate))!=normalize-space(ead:daodesc)">
                             <xsl:if
                                 test="normalize-space(../ead:did/ead:unittitle)!=normalize-space(ead:daodesc)">
@@ -41,7 +41,7 @@
                                     </mods:subTitle>
                                 </xsl:if>
                             </xsl:if>
-                        </xsl:if>
+                        </xsl:if> -->
                     </mods:titleInfo>
                     <mods:name>
                         <mods:namePart>University of Pittsburgh</mods:namePart>
@@ -57,7 +57,7 @@
                         </mods:dateOther>
                     </mods:originInfo>
                     <mods:identifier type="pitt">
-                        <xsl:value-of select="normalize-space(@ns2:href)"/>
+                        <xsl:value-of select="normalize-space(@xlink:href)"/>
                     </mods:identifier>
                     <mods:relatedItem type="host">
                         <mods:titleInfo>
